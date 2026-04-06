@@ -1,9 +1,37 @@
 import streamlit as st
+from groq import Groq
 
-st.title("Мой первый ИИ бот")
-st.write("Привет! Если ты это видишь, значит бот на GitHub работает.")
+st.title("Мой личный ИИ Помощник")
 
-user_input = st.chat_input("Напиши мне что-нибудь...")
-if user_input:
-    st.write(f"Ты написал: {user_input}")
-    st.info("Чтобы я стал умным, нужно подключить API-ключ, но пока я просто повторяю за тобой!")
+# Ввод ключа (чтобы не светить его в коде)
+api_key = st.sidebar.text_input("Вставь сюда свой Groq API Key", type="password")
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Показываем историю чата
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Поле ввода
+if prompt := st.chat_input("Спроси меня о чем угодно..."):
+    if not api_key:
+        st.error("Пожалуйста, введи API ключ в боковой панели слева!")
+    else:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Запрос к ИИ
+        client = Groq(api_key=api_key)
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        response = completion.choices[0].message.content
+        
+        with st.chat_message("assistant"):
+            st.markdown(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
